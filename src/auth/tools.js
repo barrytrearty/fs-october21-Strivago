@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import UserModel from "../users/schema.js";
+import UserSchema from "../users/schema.js";
 
 export const JWTAuthenticate = async (user) => {
   const accessToken = await generateJWT({ _id: user._id });
@@ -56,7 +56,7 @@ const verifyRefreshJWT = (token) =>
 export const verifyRefreshAndGenerateTokens = async (actualRefreshToken) => {
   const decodedRefreshToken = await verifyRefreshJWT(actualRefreshToken);
 
-  const user = await UserModel.findById(decodedRefreshToken._id);
+  const user = await UserSchema.findById(decodedRefreshToken._id);
 
   if (!user) throw createHttpError(404, "User not found");
 

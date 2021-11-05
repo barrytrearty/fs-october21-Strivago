@@ -33,6 +33,24 @@ usersRouter.post("/register", async (req, res, next) => {
   }
 });
 
+// usersRouter.post("/login", async (req, res, next) => {
+//   try {
+//     const { email, password } = req.body;
+
+//     const user = await UserSchema.checkCredentials(email, password);
+
+//     if (user) {
+//       const accessToken = await JWTAuthenticate(user);
+
+//       res.send({ accessToken });
+//     } else {
+//       next(createHttpError(401, "Credentials are not ok!"));
+//     }
+//   } catch (error) {
+//     next(error);
+//   }
+// });
+
 usersRouter.post("/login", async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -40,9 +58,19 @@ usersRouter.post("/login", async (req, res, next) => {
     const user = await UserSchema.checkCredentials(email, password);
 
     if (user) {
-      const accessToken = await JWTAuthenticate(user);
+      const { accessToken, refreshToken } = await JWTAuthenticate(user);
 
-      res.send({ accessToken });
+      res.cookie("accessToken", accessToken, {
+        httpOnly: true,
+        // secure: (process.env.NODE_ENV = "production" ? true : false),
+        sameSite: "none",
+      });
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        // secure: (process.env.NODE_ENV = "production" ? true : false),
+        sameSite: "none",
+      });
+      res.send();
     } else {
       next(createHttpError(401, "Credentials are not ok!"));
     }
@@ -82,14 +110,9 @@ usersRouter.post("/refreshToken", async (req, res, next) => {
   try {
     const { currentRefreshToken } = req.body;
 
-    // 1. Check the validity of currentRefreshToken (check if it is not expired, check the integrity, check if currentRefreshToken is in db)
-
-    // 2. If everything is fine --> generate a new pair of tokens (accessToken and refreshToken)
     const { accessToken, refreshToken } = await verifyRefreshAndGenerateTokens(
       currentRefreshToken
     );
-
-    // 3. Send tokens back as a response
     res.send({ accessToken, refreshToken });
   } catch (error) {
     next(error);
@@ -113,15 +136,39 @@ usersRouter.get(
   passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
+// usersRouter.get(
+//   "/googleRedirect",
+//   passport.authenticate("google"),
+//   async (req, res, next) => {
+//     try {
+//       console.log(req.user);
+//       res.redirect(
+//         `http://localhost:3000?accessToken=${req.user.tokens.accessToken}&refreshToken=${req.user.tokens.refreshToken}`
+//       );
+//     } catch (error) {
+//       next(error);
+//     }
+//   }
+// );
+
 usersRouter.get(
   "/googleRedirect",
   passport.authenticate("google"),
   async (req, res, next) => {
     try {
       console.log(req.user);
-      res.redirect(
-        `http://localhost:3000?accessToken=${req.user.tokens.accessToken}&refreshToken=${req.user.tokens.refreshToken}`
-      );
+
+      res.cookie("accessToken", req.user.tokens.accessToken, {
+        httpOnly: true,
+        secure: (process.env.NODE_ENV = "production" ? true : false),
+        sameSite: "none",
+      });
+      res.cookie("refreshToken", req.user.tokens.refreshToken, {
+        httpOnly: true,
+        secure: (process.env.NODE_ENV = "production" ? true : false),
+        sameSite: "none",
+      });
+      res.redirect(`http://localhost:3000`);
     } catch (error) {
       next(error);
     }

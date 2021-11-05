@@ -1,6 +1,6 @@
 import passport from "passport";
 import GoogleStrategy from "passport-google-oauth20";
-import UserModel from "../users/schema.js";
+import UserSchema from "../users/schema.js";
 import { JWTAuthenticate } from "./tools.js";
 
 const googleStrategy = new GoogleStrategy(
@@ -13,7 +13,7 @@ const googleStrategy = new GoogleStrategy(
     try {
       console.log(googleProfile);
 
-      const user = await UserModel.findOne({ googleId: googleProfile.id });
+      const user = await UserSchema.findOne({ googleId: googleProfile.id });
 
       if (user) {
         const tokens = await JWTAuthenticate(user);
@@ -25,7 +25,7 @@ const googleStrategy = new GoogleStrategy(
           role: "Guest",
         };
 
-        const createdUser = new UserModel(newUser);
+        const createdUser = new UserSchema(newUser);
         const savedUser = await createdUser.save();
 
         const tokens = await JWTAuthenticate(savedUser);
