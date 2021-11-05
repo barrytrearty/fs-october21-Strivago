@@ -6,6 +6,10 @@ import { JWTAuthenticate } from "../auth/tools.js";
 import AccomodationSchema from "../accomodation/schema.js";
 import { JWTAuthMiddleware } from "../auth/token.js";
 import { hostOnlyMiddleware } from "../auth/hostOnly.js";
+import { verifyRefreshAndGenerateTokens } from "../auth/tools.js";
+
+import passport from "passport";
+import GoogleStrategy from "../auth/oauth.js";
 
 const usersRouter = express.Router();
 
@@ -73,5 +77,55 @@ usersRouter.get("/me", JWTAuthMiddleware, async (req, res, next) => {
     next(error);
   }
 });
+
+usersRouter.post("/refreshToken", async (req, res, next) => {
+  try {
+    const { currentRefreshToken } = req.body;
+
+    // 1. Check the validity of currentRefreshToken (check if it is not expired, check the integrity, check if currentRefreshToken is in db)
+
+    // 2. If everything is fine --> generate a new pair of tokens (accessToken and refreshToken)
+    const { accessToken, refreshToken } = await verifyRefreshAndGenerateTokens(
+      currentRefreshToken
+    );
+
+    // 3. Send tokens back as a response
+    res.send({ accessToken, refreshToken });
+  } catch (error) {
+    next(error);
+  }
+});
+
+usersRouter.post("/logout", JWTAuthMiddleware, async (req, res, next) => {
+  try {
+    req.user.refreshToken = null;
+    await req.user.save();
+    res.send();
+  } catch (error) {
+    next(error);
+  }
+});
+
+///////////////////////////////////////
+//GOOGLE OAUTH
+usersRouter.get(
+  "/googleLogin",
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
+
+usersRouter.get(
+  "/googleRedirect",
+  passport.authenticate("google"),
+  async (req, res, next) => {
+    try {
+      console.log(req.user);
+      res.redirect(
+        `http://localhost:3000?accessToken=${req.user.tokens.accessToken}&refreshToken=${req.user.tokens.refreshToken}`
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 export default usersRouter;

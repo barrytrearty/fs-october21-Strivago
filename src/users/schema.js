@@ -5,9 +5,15 @@ const { Schema, model } = mongoose;
 
 const UserSchema = new Schema({
   email: { type: String, required: true },
-  password: { type: String, required: true },
+  password: { type: String },
   role: { type: String, default: "Guest", enum: ["Guest", "Host"] },
+  refreshToken: { type: String },
+  googleId: { type: String },
 });
+
+// password: {type: String, required: function () { return !Boolean(this.googleId) }},
+//     refreshToken: { type: String },
+//     googleId: { type: String, required: function () { return !Boolean(this.password) } }
 
 UserSchema.pre("save", async function (next) {
   const newUser = this;
@@ -23,7 +29,9 @@ UserSchema.methods.toJSON = function () {
   const userDocument = this;
   const userObject = userDocument.toObject();
   delete userObject.password;
-  // delete userObject.__v
+  delete userObject.__v;
+  delete userObject.refreshToken;
+  delete userObject.googleId;
 
   return userObject;
 };

@@ -1,7 +1,9 @@
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
-// import passport from "passport";
+import passport from "passport";
+
+import GoogleStrategy from "./auth/oauth.js";
 import listEndpoints from "express-list-endpoints";
 import usersRouter from "./users/index.js";
 import accomodationRouter from "./accomodation/index.js";
@@ -9,8 +11,11 @@ import accomodationRouter from "./accomodation/index.js";
 const server = express();
 const port = process.env.PORT || 3001;
 
+passport.use("google", GoogleStrategy);
+
 server.use(cors());
 server.use(express.json());
+server.use(passport.initialize());
 
 server.use("/users", usersRouter);
 server.use("/accomodation", accomodationRouter);
